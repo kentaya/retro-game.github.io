@@ -1,1 +1,616 @@
-Hello
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Match-3 Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        body {
+            background: #222034;
+            font-family: 'Press Start 2P', monospace;
+            color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 8px;
+        }
+        
+        .game-container {
+            background: #323c39;
+            border: 4px solid #696a6a;
+            border-style: outset;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 4px 4px 0px #1a1c2c;
+        }
+        
+        .title {
+            color: #f4f4f4;
+            font-size: 12px;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0px #1a1c2c;
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 8px;
+        }
+        
+        .score-item {
+            background: #1a1c2c;
+            border: 2px solid #696a6a;
+            border-style: inset;
+            padding: 6px 8px;
+            flex: 1;
+        }
+        
+        .score-label {
+            color: #94b0c2;
+            font-size: 6px;
+            margin-bottom: 2px;
+        }
+        
+        .score-value {
+            color: #f4f4f4;
+            font-size: 8px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 32px);
+            grid-template-rows: repeat(8, 32px);
+            gap: 2px;
+            background: #1a1c2c;
+            padding: 4px;
+            margin: 0 auto 16px;
+            border: 2px solid #696a6a;
+            border-style: inset;
+        }
+        
+        .cell {
+            width: 32px;
+            height: 32px;
+            background: #323c39;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid #4b5563;
+            position: relative;
+        }
+        
+        .cell:hover {
+            border-color: #94b0c2;
+        }
+        
+        .cell.selected {
+            background: #ffd700;
+            border-color: #ffff00;
+            animation: selected-pulse 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes selected-pulse {
+            from { background: #ffd700; }
+            to { background: #ffff00; }
+        }
+        
+        .cell.matched {
+            background: #ff6b6b;
+            animation: match-blink 0.2s ease-in-out 6;
+        }
+        
+        @keyframes match-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .gem {
+            width: 24px;
+            height: 24px;
+            position: relative;
+        }
+        
+        /* Pixel art gems using box-shadow */
+        .gem-red {
+            background: #ff4757;
+            box-shadow: 
+                0 0 0 2px #c44569,
+                0 0 0 1px #ff4757 inset,
+                2px 2px 0 0 #ff6b7a inset,
+                -2px -2px 0 0 #c44569 inset;
+        }
+        
+        .gem-blue {
+            background: #3742fa;
+            box-shadow: 
+                0 0 0 2px #2f3542,
+                0 0 0 1px #3742fa inset,
+                2px 2px 0 0 #5352ed inset,
+                -2px -2px 0 0 #2f3542 inset;
+        }
+        
+        .gem-green {
+            background: #2ed573;
+            box-shadow: 
+                0 0 0 2px #26de81,
+                0 0 0 1px #2ed573 inset,
+                2px 2px 0 0 #7bed9f inset,
+                -2px -2px 0 0 #26de81 inset;
+        }
+        
+        .gem-yellow {
+            background: #ffa502;
+            box-shadow: 
+                0 0 0 2px #ff9500,
+                0 0 0 1px #ffa502 inset,
+                2px 2px 0 0 #ffb142 inset,
+                -2px -2px 0 0 #ff9500 inset;
+        }
+        
+        .gem-purple {
+            background: #a55eea;
+            box-shadow: 
+                0 0 0 2px #8854d0,
+                0 0 0 1px #a55eea inset,
+                2px 2px 0 0 #c44dff inset,
+                -2px -2px 0 0 #8854d0 inset;
+        }
+        
+        .gem-orange {
+            background: #ff6348;
+            box-shadow: 
+                0 0 0 2px #ff4757,
+                0 0 0 1px #ff6348 inset,
+                2px 2px 0 0 #ff7675 inset,
+                -2px -2px 0 0 #ff4757 inset;
+        }
+        
+        /* Pixel highlight effect */
+        .gem::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        .gem::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .btn {
+            background: #323c39;
+            border: 2px solid #696a6a;
+            border-style: outset;
+            color: #f4f4f4;
+            padding: 6px 12px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 6px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0px #1a1c2c;
+        }
+        
+        .btn:hover {
+            background: #4b5563;
+        }
+        
+        .btn:active {
+            border-style: inset;
+            transform: translateY(1px) translateX(1px);
+        }
+        
+        .combo-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            color: #ffd700;
+            text-shadow: 2px 2px 0px #1a1c2c;
+            pointer-events: none;
+            opacity: 0;
+            animation: pixel-combo 1s ease-out;
+        }
+        
+        @keyframes pixel-combo {
+            0% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            20% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            80% { 
+                opacity: 1; 
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+        }
+        
+        /* Scanline effect */
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                transparent 50%, 
+                rgba(0, 0, 0, 0.1) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">PIXEL MATCH-3</h1>
+        
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">SCORE</div>
+                <div class="score-value" id="score">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">LEVEL</div>
+                <div class="score-value" id="level">1</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">COMBO</div>
+                <div class="score-value" id="combo">0</div>
+            </div>
+        </div>
+        
+        <div class="grid" id="gameGrid"></div>
+        
+        <div class="controls">
+            <button class="btn" onclick="newGame()">NEW GAME</button>
+            <button class="btn" onclick="shuffle()">SHUFFLE</button>
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 8;
+        const GEM_TYPES = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        
+        let grid = [];
+        let selectedCell = null;
+        let score = 0;
+        let level = 1;
+        let combo = 0;
+        let isSwapping = false;
+        
+        // Khởi tạo game
+        function initGame() {
+            const gameGrid = document.getElementById('gameGrid');
+            gameGrid.innerHTML = '';
+            grid = [];
+            
+            for (let row = 0; row < GRID_SIZE; row++) {
+                grid[row] = [];
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    let gemType;
+                    do {
+                        gemType = GEM_TYPES[Math.floor(Math.random() * GEM_TYPES.length)];
+                    } while (wouldCreateMatch(row, col, gemType));
+                    
+                    grid[row][col] = gemType;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => handleCellClick(row, col);
+                    
+                    const gem = document.createElement('div');
+                    gem.className = `gem gem-${gemType}`;
+                    cell.appendChild(gem);
+                    
+                    gameGrid.appendChild(cell);
+                }
+            }
+            
+            updateDisplay();
+        }
+        
+        // Kiểm tra xem việc đặt gem có tạo match không
+        function wouldCreateMatch(row, col, gemType) {
+            // Kiểm tra hàng ngang
+            let horizontalCount = 1;
+            if (col > 0 && grid[row][col-1] === gemType) horizontalCount++;
+            if (col > 1 && grid[row][col-2] === gemType) horizontalCount++;
+            
+            // Kiểm tra hàng dọc
+            let verticalCount = 1;
+            if (row > 0 && grid[row-1][col] === gemType) verticalCount++;
+            if (row > 1 && grid[row-2][col] === gemType) verticalCount++;
+            
+            return horizontalCount >= 3 || verticalCount >= 3;
+        }
+        
+        // Xử lý click vào ô
+        function handleCellClick(row, col) {
+            if (isSwapping) return;
+            
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            
+            if (selectedCell === null) {
+                selectedCell = {row, col};
+                cell.classList.add('selected');
+            } else {
+                if (selectedCell.row === row && selectedCell.col === col) {
+                    cell.classList.remove('selected');
+                    selectedCell = null;
+                } else if (areAdjacent(selectedCell, {row, col})) {
+                    swapGems(selectedCell, {row, col});
+                } else {
+                    document.querySelector('.cell.selected').classList.remove('selected');
+                    selectedCell = {row, col};
+                    cell.classList.add('selected');
+                }
+            }
+        }
+        
+        // Kiểm tra hai ô có kề nhau không
+        function areAdjacent(cell1, cell2) {
+            const dx = Math.abs(cell1.row - cell2.row);
+            const dy = Math.abs(cell1.col - cell2.col);
+            return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+        }
+        
+        // Hoán đổi gems
+        function swapGems(cell1, cell2) {
+            isSwapping = true;
+            
+            const temp = grid[cell1.row][cell1.col];
+            grid[cell1.row][cell1.col] = grid[cell2.row][cell2.col];
+            grid[cell2.row][cell2.col] = temp;
+            
+            updateGrid();
+            
+            setTimeout(() => {
+                const matches = findMatches();
+                if (matches.length > 0) {
+                    processMatches();
+                } else {
+                    const temp = grid[cell1.row][cell1.col];
+                    grid[cell1.row][cell1.col] = grid[cell2.row][cell2.col];
+                    grid[cell2.row][cell2.col] = temp;
+                    updateGrid();
+                }
+                
+                clearSelection();
+                isSwapping = false;
+            }, 150);
+        }
+        
+        // Tìm các matches
+        function findMatches() {
+            const matches = [];
+            
+            // Tìm matches hàng ngang
+            for (let row = 0; row < GRID_SIZE; row++) {
+                let count = 1;
+                let currentGem = grid[row][0];
+                
+                for (let col = 1; col < GRID_SIZE; col++) {
+                    if (grid[row][col] === currentGem) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let i = col - count; i < col; i++) {
+                                matches.push({row, col: i});
+                            }
+                        }
+                        count = 1;
+                        currentGem = grid[row][col];
+                    }
+                }
+                
+                if (count >= 3) {
+                    for (let i = GRID_SIZE - count; i < GRID_SIZE; i++) {
+                        matches.push({row, col: i});
+                    }
+                }
+            }
+            
+            // Tìm matches hàng dọc
+            for (let col = 0; col < GRID_SIZE; col++) {
+                let count = 1;
+                let currentGem = grid[0][col];
+                
+                for (let row = 1; row < GRID_SIZE; row++) {
+                    if (grid[row][col] === currentGem) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let i = row - count; i < row; i++) {
+                                matches.push({row: i, col});
+                            }
+                        }
+                        count = 1;
+                        currentGem = grid[row][col];
+                    }
+                }
+                
+                if (count >= 3) {
+                    for (let i = GRID_SIZE - count; i < GRID_SIZE; i++) {
+                        matches.push({row: i, col});
+                    }
+                }
+            }
+            
+            return matches;
+        }
+        
+        // Xử lý matches
+        function processMatches() {
+            const matches = findMatches();
+            
+            if (matches.length === 0) {
+                combo = 0;
+                updateDisplay();
+                return;
+            }
+            
+            combo++;
+            
+            matches.forEach(match => {
+                const cell = document.querySelector(`[data-row="${match.row}"][data-col="${match.col}"]`);
+                cell.classList.add('matched');
+            });
+            
+            const baseScore = matches.length * 10;
+            const comboBonus = combo > 1 ? combo * 5 : 0;
+            score += baseScore + comboBonus;
+            
+            if (combo > 1) {
+                showCombo(combo);
+            }
+            
+            setTimeout(() => {
+                matches.forEach(match => {
+                    grid[match.row][match.col] = null;
+                });
+                
+                dropGems();
+                fillEmptySpaces();
+                updateGrid();
+                
+                setTimeout(() => {
+                    processMatches();
+                }, 150);
+            }, 300);
+        }
+        
+        // Thả gems xuống
+        function dropGems() {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                let writePos = GRID_SIZE - 1;
+                
+                for (let row = GRID_SIZE - 1; row >= 0; row--) {
+                    if (grid[row][col] !== null) {
+                        grid[writePos][col] = grid[row][col];
+                        if (writePos !== row) {
+                            grid[row][col] = null;
+                        }
+                        writePos--;
+                    }
+                }
+            }
+        }
+        
+        // Điền vào chỗ trống
+        function fillEmptySpaces() {
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    if (grid[row][col] === null) {
+                        grid[row][col] = GEM_TYPES[Math.floor(Math.random() * GEM_TYPES.length)];
+                    }
+                }
+            }
+        }
+        
+        // Cập nhật hiển thị grid
+        function updateGrid() {
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                    const gem = cell.querySelector('.gem');
+                    
+                    gem.className = `gem gem-${grid[row][col]}`;
+                    cell.classList.remove('matched');
+                }
+            }
+        }
+        
+        // Cập nhật điểm số
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = Math.floor(score / 1000) + 1;
+            document.getElementById('combo').textContent = combo;
+        }
+        
+        // Hiển thị combo
+        function showCombo(comboCount) {
+            const comboDisplay = document.createElement('div');
+            comboDisplay.className = 'combo-display';
+            comboDisplay.textContent = `COMBO x${comboCount}`;
+            document.body.appendChild(comboDisplay);
+            
+            setTimeout(() => {
+                document.body.removeChild(comboDisplay);
+            }, 1000);
+        }
+        
+        // Xóa lựa chọn
+        function clearSelection() {
+            const selected = document.querySelector('.cell.selected');
+            if (selected) {
+                selected.classList.remove('selected');
+            }
+            selectedCell = null;
+        }
+        
+        // Game mới
+        function newGame() {
+            score = 0;
+            level = 1;
+            combo = 0;
+            selectedCell = null;
+            isSwapping = false;
+            initGame();
+        }
+        
+        // Xáo trộn
+        function shuffle() {
+            for (let row = 0; row < GRID_SIZE; row++) {
+                for (let col = 0; col < GRID_SIZE; col++) {
+                    grid[row][col] = GEM_TYPES[Math.floor(Math.random() * GEM_TYPES.length)];
+                }
+            }
+            updateGrid();
+            clearSelection();
+        }
+        
+        // Khởi chạy game
+        initGame();
+    </script>
+</body>
+</html>
